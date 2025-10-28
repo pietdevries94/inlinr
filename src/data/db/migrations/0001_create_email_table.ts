@@ -24,10 +24,10 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 
   await db.schema
     .createTable('email_labels')
-    .addColumn('email_id', 'varchar', (col) => col.notNull())
-    .addColumn('label_id', 'varchar', (col) => col.notNull())
-    .addForeignKeyConstraint('fk_email', ['email_id'], 'emails', ['id'])
-    .addForeignKeyConstraint('fk_label', ['label_id'], 'labels', ['id'])
+    .addColumn('email_id', 'varchar', (col) =>
+      col.references('emails.id').onDelete('cascade').notNull(),
+    )
+    .addColumn('label_id', 'varchar', (col) => col.references('labels.id').notNull())
     .addUniqueConstraint('uq_email_label', ['email_id', 'label_id'])
     .execute();
 

@@ -18,15 +18,10 @@ export const createGmailFullSynchronizer =
       if (isStopped) return;
       const messageIds = await getAllMessageIds(gmailClient, () => isStopped, options.onError);
 
-      const maxHistoryId = await fetchAndProcessEmails(
-        gmailClient,
-        options,
-        () => isStopped,
-        messageIds,
-      );
+      await fetchAndProcessEmails(gmailClient, options, () => isStopped, messageIds);
 
       if (!isStopped) {
-        await options.onComplete?.(maxHistoryId);
+        await options.onComplete?.();
       }
     };
 

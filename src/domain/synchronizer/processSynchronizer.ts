@@ -33,28 +33,46 @@ async function process(
   partialSynchronizer: PartialSynchronizeFunction,
   options: SynchronizeOptions,
 ) {
-  const partialSyncMarker = await getPartialSyncMarker(db);
-  if (partialSyncMarker) return partialSynchronizer(partialSyncMarker, options);
+  if (await fullSyncCompleted(db)) return partialSynchronizer(partialSyncMarker(db), options);
   return fullSynchronizer(options);
 }
 
-async function getPartialSyncMarker(db: Kysely<Db>): Promise<unknown | null> {
+async function partialSyncMarker(db: Kysely<Db>): Promise<string> {
+  try {
+    const record = await db
+      .selectFrom('emails')
+      .limit(1)
+      .select('history_id')
+      .orderBy('sent_at', 'desc')
+      .executeTakeFirst();
+
+    if (record) {
+      return record.history_id;
+    }
+  } catch {
+    return '0';
+  }
+
+  return '0';
+}
+
+async function fullSyncCompleted(db: Kysely<Db>): Promise<boolean> {
   const record = await db
     .selectFrom('synchronization_data')
     .selectAll()
-    .where('key', '=', 'partial_sync_marker')
+    .where('key', '=', 'full_sync_completed')
     .executeTakeFirst();
 
   if (record) {
     return JSON.parse(record.value);
   }
 
-  return null;
+  return false;
 }
 
 function enrichSynchronizeOptions(
   db: Kysely<Db>,
-  options?: Partial<SynchronizeOptions>,
+  options?: Omit<Partial<SynchronizeOptions>, 'getExistingMessageIds'>,
 ): SynchronizeOptions {
   return {
     ...options,
@@ -64,9 +82,9 @@ function enrichSynchronizeOptions(
       if (!options?.onLabelsFetched) return res;
       return options?.onLabelsFetched?.(labels);
     },
-    onComplete: async (partialSyncMarker) => {
-      await setPartialSyncMarker(db, partialSyncMarker);
-      options?.onComplete?.(partialSyncMarker);
+    onComplete: async () => {
+      await setFullSyncCompleted(db);
+      options?.onComplete?.();
     },
     onEmailCreated: async (emails) => {
       const res = await insertEmail(db, emails);
@@ -91,6 +109,10 @@ function enrichSynchronizeOptions(
       if (res.hasError()) return res;
       if (!options?.onEmailLabelRemoved) return createResult<void>(void 0);
       return options?.onEmailLabelRemoved?.(emailId, labelIds);
+    },
+    getExistingMessageIds: async () => {
+      const rows = await db.selectFrom('emails').select('id').execute();
+      return new Set(rows.map((row) => row.id));
     },
   };
 }
@@ -120,32 +142,34 @@ async function upsertLabels(db: Kysely<Db>, labels: Label[]): Promise<Result<voi
 }
 
 async function insertEmail(db: Kysely<Db>, emails: Email[]) {
-  try {
-    await db
-      .insertInto('emails')
-      .values(
-        emails.map((email) => ({
-          id: email.id,
-          subject: email.subject,
-          body: email.body,
-          sender: email.sender,
-          recipient: email.recipient,
-          cc: email.cc,
-          sent_at: email.sentAt,
-          history_id: email.historyId,
-          thread_id: email.threadId,
-        })),
-      )
-      .execute();
-  } catch (e) {
-    return createErrorResult<void>(e as Error);
-  }
-  return await addLabelsToEmail(db, emails);
+  return await db.transaction().execute(async (tx) => {
+    try {
+      await tx
+        .insertInto('emails')
+        .values(
+          emails.map((email) => ({
+            id: email.id,
+            subject: email.subject,
+            body: email.body,
+            sender: email.sender,
+            recipient: email.recipient,
+            cc: email.cc,
+            sent_at: email.sentAt,
+            history_id: email.historyId,
+            thread_id: email.threadId,
+          })),
+        )
+        .execute();
+    } catch (e) {
+      return createErrorResult<void>(e as Error);
+    }
+    return await addLabelsToEmail(tx, emails);
+  });
 }
 
-async function setPartialSyncMarker(db: Kysely<Db>, marker: unknown) {
-  const key = 'partial_sync_marker';
-  const value = JSON.stringify(marker);
+async function setFullSyncCompleted(db: Kysely<Db>) {
+  const key = 'full_sync_completed';
+  const value = JSON.stringify(true);
   try {
     await db
       .insertInto('synchronization_data')

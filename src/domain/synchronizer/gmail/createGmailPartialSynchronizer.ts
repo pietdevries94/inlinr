@@ -29,7 +29,6 @@ export const createGmailPartialSynchronizer =
       }
 
       let nextPageToken: string | undefined;
-      let maxHistoryId: string | undefined;
       const addedIds: string[] = [];
       do {
         if (isStopped) return;
@@ -73,19 +72,12 @@ export const createGmailPartialSynchronizer =
               );
           });
         });
-
-        if (
-          historyResponse.value.historyId &&
-          (maxHistoryId === undefined || historyResponse.value.historyId > maxHistoryId)
-        ) {
-          maxHistoryId = historyResponse.value.historyId;
-        }
       } while (nextPageToken && !isStopped);
 
       await fetchAndProcessEmails(gmailClient, options, () => isStopped, addedIds);
 
       if (!isStopped) {
-        await options.onComplete?.(maxHistoryId);
+        await options.onComplete?.();
       }
     };
 

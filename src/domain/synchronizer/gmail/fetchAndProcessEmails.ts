@@ -13,26 +13,19 @@ export async function fetchAndProcessEmails(
 ) {
   const process = createProcessMessageResponse(options.onEmailCreated, options.onError);
 
-  let maxHistoryId: string | undefined;
-  for (let i = 0; i < messageIds.length; i += MESSAGE_BATCH_SIZE) {
+  const existingMessageIds = await options.getExistingMessageIds();
+  const filteredMessageIds = messageIds.filter((id) => !existingMessageIds.has(id));
+
+  for (let i = 0; i < filteredMessageIds.length; i += MESSAGE_BATCH_SIZE) {
     if (isStopped()) break;
-    const batchIds = messageIds.slice(i, i + MESSAGE_BATCH_SIZE);
+    const batchIds = filteredMessageIds.slice(i, i + MESSAGE_BATCH_SIZE);
     const batchMessages = await gmailClient.getMessages(batchIds);
 
     process(batchMessages);
 
-    batchMessages.forEach((msg) => {
-      if (msg.hasError()) return;
-      // Update maxHistoryId
-      const historyId = msg.value.historyId;
-      if (historyId && (maxHistoryId === undefined || historyId > maxHistoryId))
-        maxHistoryId = historyId;
-    });
-
-    const progress = Math.min(i + MESSAGE_BATCH_SIZE, messageIds.length);
-    await options.onProgress?.(progress, messageIds.length);
+    const progress = Math.min(i + MESSAGE_BATCH_SIZE, filteredMessageIds.length);
+    await options.onProgress?.(progress, filteredMessageIds.length);
   }
-  return maxHistoryId;
 }
 
 function createProcessMessageResponse(
