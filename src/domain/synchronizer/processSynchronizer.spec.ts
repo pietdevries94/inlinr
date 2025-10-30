@@ -37,6 +37,15 @@ describe('processSynchronizer', () => {
     }
   });
 
+  // Helper function to wait for synchronizer to complete
+  const waitForSynchronizer = () => {
+    return new Promise<void>((resolve) => {
+      processSynchronizer(db, mockFullSynchronizer, mockPartialSynchronizer, {
+        onComplete: () => resolve(),
+      });
+    });
+  };
+
   it('should pass a string to partialSynchronizer when full sync is completed', async () => {
     // Setup: mark full sync as completed and add an email with history_id
     await db
@@ -60,37 +69,27 @@ describe('processSynchronizer', () => {
       .execute();
 
     // Act
-    await new Promise<void>((resolve) => {
-      processSynchronizer(db, mockFullSynchronizer, mockPartialSynchronizer, {
-        onComplete: () => {
-          // Assert: partialSynchronizer should be called with a string
-          expect(mockPartialSynchronizer).toHaveBeenCalled();
-          const calls = vi.mocked(mockPartialSynchronizer).mock.calls;
-          expect(calls.length).toBeGreaterThan(0);
-          const firstArg = calls[0]?.[0];
-          expect(typeof firstArg).toBe('string');
-          expect(firstArg).toBe('12345');
-          expect(mockFullSynchronizer).not.toHaveBeenCalled();
-          resolve();
-        },
-      });
-    });
+    await waitForSynchronizer();
+
+    // Assert: partialSynchronizer should be called with a string
+    expect(mockPartialSynchronizer).toHaveBeenCalled();
+    const calls = vi.mocked(mockPartialSynchronizer).mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    const firstArg = calls[0]?.[0];
+    expect(typeof firstArg).toBe('string');
+    expect(firstArg).toBe('12345');
+    expect(mockFullSynchronizer).not.toHaveBeenCalled();
   });
 
   it('should call fullSynchronizer when full sync is not completed', async () => {
     // Setup: full sync not completed (no record in synchronization_data)
 
     // Act
-    await new Promise<void>((resolve) => {
-      processSynchronizer(db, mockFullSynchronizer, mockPartialSynchronizer, {
-        onComplete: () => {
-          // Assert
-          expect(mockFullSynchronizer).toHaveBeenCalled();
-          expect(mockPartialSynchronizer).not.toHaveBeenCalled();
-          resolve();
-        },
-      });
-    });
+    await waitForSynchronizer();
+
+    // Assert
+    expect(mockFullSynchronizer).toHaveBeenCalled();
+    expect(mockPartialSynchronizer).not.toHaveBeenCalled();
   });
 
   it('should use default history_id "0" when no emails exist', async () => {
@@ -101,19 +100,14 @@ describe('processSynchronizer', () => {
       .execute();
 
     // Act
-    await new Promise<void>((resolve) => {
-      processSynchronizer(db, mockFullSynchronizer, mockPartialSynchronizer, {
-        onComplete: () => {
-          // Assert: partialSynchronizer should be called with "0" as default
-          expect(mockPartialSynchronizer).toHaveBeenCalled();
-          const calls = vi.mocked(mockPartialSynchronizer).mock.calls;
-          expect(calls.length).toBeGreaterThan(0);
-          const firstArg = calls[0]?.[0];
-          expect(typeof firstArg).toBe('string');
-          expect(firstArg).toBe('0');
-          resolve();
-        },
-      });
-    });
+    await waitForSynchronizer();
+
+    // Assert: partialSynchronizer should be called with "0" as default
+    expect(mockPartialSynchronizer).toHaveBeenCalled();
+    const calls = vi.mocked(mockPartialSynchronizer).mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    const firstArg = calls[0]?.[0];
+    expect(typeof firstArg).toBe('string');
+    expect(firstArg).toBe('0');
   });
 });
