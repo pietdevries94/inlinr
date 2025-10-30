@@ -57,19 +57,30 @@ export const createGmailPartialSynchronizer =
           });
           record.messagesDeleted?.forEach((deleted) => {
             if (isStopped) return;
-            if (deleted.message?.id) errorChecker(options.onEmailDeleted?.([deleted.message.id]));
+            if (deleted.message?.id) {
+              const result = options.onEmailDeleted?.([deleted.message.id]);
+              if (result) errorChecker(result);
+            }
           });
           record.labelsAdded?.forEach((labelAdded) => {
             if (isStopped) return;
-            if (labelAdded.message?.id && labelAdded.labelIds)
-              errorChecker(options.onEmailLabelAdded?.(labelAdded.message.id, labelAdded.labelIds));
+            if (labelAdded.message?.id && labelAdded.labelIds) {
+              const result = options.onEmailLabelAdded?.(
+                labelAdded.message.id,
+                labelAdded.labelIds,
+              );
+              if (result) errorChecker(result);
+            }
           });
           record.labelsRemoved?.forEach((labelRemoved) => {
             if (isStopped) return;
-            if (labelRemoved.message?.id && labelRemoved.labelIds)
-              errorChecker(
-                options.onEmailLabelRemoved?.(labelRemoved.message.id, labelRemoved.labelIds),
+            if (labelRemoved.message?.id && labelRemoved.labelIds) {
+              const result = options.onEmailLabelRemoved?.(
+                labelRemoved.message.id,
+                labelRemoved.labelIds,
               );
+              if (result) errorChecker(result);
+            }
           });
         });
       } while (nextPageToken && !isStopped);
