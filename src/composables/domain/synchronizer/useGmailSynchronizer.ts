@@ -1,6 +1,7 @@
 import { injectKyselyDb } from '@/composables/data/db';
 import { injectGmail } from '@/composables/data/gmail';
 import { processSynchronizer } from '@/domain/synchronizer';
+import { createKyselyDataStore } from '@/domain/synchronizer/dataStore';
 import {
   createGmailFullSynchronizer,
   createGmailPartialSynchronizer,
@@ -23,8 +24,10 @@ export function useGmailSynchronizer() {
       await gmail.signIn();
     }
 
+    const dataStore = createKyselyDataStore(db);
+
     const syncStatus = processSynchronizer(
-      db,
+      dataStore,
       createGmailFullSynchronizer(gmail),
       createGmailPartialSynchronizer(gmail),
       {

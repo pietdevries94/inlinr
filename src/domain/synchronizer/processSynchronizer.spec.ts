@@ -1,21 +1,15 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { processSynchronizer } from './processSynchronizer';
-import { PGlite } from '@electric-sql/pglite';
-import { createKyselyDb } from '@/data/db';
-import type { Kysely } from 'kysely';
-import type { Db } from '@/data/db';
+import { createMockDataStore, type MockDataStore } from './dataStore';
 import type { FullSynchronizeFunction, PartialSynchronizeFunction } from './types';
 
 describe('processSynchronizer', () => {
-  let db: Kysely<Db>;
-  let pglite: PGlite;
+  let dataStore: MockDataStore;
   let mockFullSynchronizer: FullSynchronizeFunction;
   let mockPartialSynchronizer: PartialSynchronizeFunction;
 
-  beforeEach(async () => {
-    // Create in-memory database
-    pglite = new PGlite();
-    db = await createKyselyDb(pglite);
+  beforeEach(() => {
+    dataStore = createMockDataStore();
 
     // Mock synchronizers that call onComplete immediately
     mockFullSynchronizer = vi.fn((options) => {
@@ -29,18 +23,10 @@ describe('processSynchronizer', () => {
     }) as unknown as PartialSynchronizeFunction;
   });
 
-  afterEach(async () => {
-    try {
-      await pglite.close();
-    } catch {
-      // Ignore cleanup errors
-    }
-  });
-
   // Helper function to wait for synchronizer to complete
   const waitForSynchronizer = () => {
     return new Promise<void>((resolve) => {
-      processSynchronizer(db, mockFullSynchronizer, mockPartialSynchronizer, {
+      processSynchronizer(dataStore, mockFullSynchronizer, mockPartialSynchronizer, {
         onComplete: () => resolve(),
       });
     });
@@ -48,25 +34,21 @@ describe('processSynchronizer', () => {
 
   it('should pass a string to partialSynchronizer when full sync is completed', async () => {
     // Setup: mark full sync as completed and add an email with history_id
-    await db
-      .insertInto('synchronization_data')
-      .values({ key: 'full_sync_completed', value: 'true' })
-      .execute();
-
-    await db
-      .insertInto('emails')
-      .values({
+    await dataStore.setFullSyncCompleted();
+    await dataStore.insertEmails([
+      {
         id: 'email1',
         subject: 'Test',
         body: 'Body',
         sender: 'sender@test.com',
         recipient: 'recipient@test.com',
         cc: '',
-        sent_at: new Date(),
-        history_id: '12345',
-        thread_id: 'thread1',
-      })
-      .execute();
+        sentAt: new Date(),
+        historyId: '12345',
+        threadId: 'thread1',
+        labelIds: [],
+      },
+    ]);
 
     // Act
     await waitForSynchronizer();
@@ -82,7 +64,7 @@ describe('processSynchronizer', () => {
   });
 
   it('should call fullSynchronizer when full sync is not completed', async () => {
-    // Setup: full sync not completed (no record in synchronization_data)
+    // Setup: full sync not completed (default state)
 
     // Act
     await waitForSynchronizer();
@@ -94,10 +76,7 @@ describe('processSynchronizer', () => {
 
   it('should use default history_id "0" when no emails exist', async () => {
     // Setup: full sync is completed but no emails exist
-    await db
-      .insertInto('synchronization_data')
-      .values({ key: 'full_sync_completed', value: 'true' })
-      .execute();
+    await dataStore.setFullSyncCompleted();
 
     // Act
     await waitForSynchronizer();
@@ -109,5 +88,104 @@ describe('processSynchronizer', () => {
     const firstArg = calls[0]?.[0];
     expect(typeof firstArg).toBe('string');
     expect(firstArg).toBe('0');
+  });
+
+  it('should return latest email history_id when multiple emails exist', async () => {
+    // Setup: mark full sync as completed and add multiple emails
+    await dataStore.setFullSyncCompleted();
+    const oldDate = new Date('2023-01-01');
+    const newDate = new Date('2023-01-02');
+
+    await dataStore.insertEmails([
+      {
+        id: 'email1',
+        subject: 'Old Email',
+        body: 'Body',
+        sender: 'sender@test.com',
+        recipient: 'recipient@test.com',
+        cc: '',
+        sentAt: oldDate,
+        historyId: '100',
+        threadId: 'thread1',
+        labelIds: [],
+      },
+      {
+        id: 'email2',
+        subject: 'New Email',
+        body: 'Body',
+        sender: 'sender@test.com',
+        recipient: 'recipient@test.com',
+        cc: '',
+        sentAt: newDate,
+        historyId: '200',
+        threadId: 'thread2',
+        labelIds: [],
+      },
+    ]);
+
+    // Act
+    await waitForSynchronizer();
+
+    // Assert: should use history_id from the most recent email
+    expect(mockPartialSynchronizer).toHaveBeenCalled();
+    const calls = vi.mocked(mockPartialSynchronizer).mock.calls;
+    const firstArg = calls[0]?.[0];
+    expect(firstArg).toBe('200');
+  });
+
+  it('should call dataStore methods when synchronizer hooks are triggered', async () => {
+    const spyUpsertLabels = vi.spyOn(dataStore, 'upsertLabels');
+    const spyInsertEmails = vi.spyOn(dataStore, 'insertEmails');
+    const spySetFullSyncCompleted = vi.spyOn(dataStore, 'setFullSyncCompleted');
+
+    // Mock synchronizer that calls various hooks
+    const mockSynchronizerWithHooks: FullSynchronizeFunction = vi.fn((options) => {
+      setTimeout(async () => {
+        await options.onLabelsFetched?.([{ id: 'label1', name: 'Important', type: 'user' }]);
+        await options.onEmailCreated?.([
+          {
+            id: 'email1',
+            subject: 'Test',
+            body: 'Body',
+            sender: 'sender@test.com',
+            recipient: 'recipient@test.com',
+            cc: '',
+            sentAt: new Date(),
+            historyId: '123',
+            threadId: 'thread1',
+            labelIds: ['label1'],
+          },
+        ]);
+        options.onComplete?.();
+      }, 0);
+      return { stop: vi.fn() };
+    }) as unknown as FullSynchronizeFunction;
+
+    // Act
+    await new Promise<void>((resolve) => {
+      processSynchronizer(dataStore, mockSynchronizerWithHooks, mockPartialSynchronizer, {
+        onComplete: () => resolve(),
+      });
+    });
+
+    // Assert
+    expect(spyUpsertLabels).toHaveBeenCalledWith([
+      { id: 'label1', name: 'Important', type: 'user' },
+    ]);
+    expect(spyInsertEmails).toHaveBeenCalledWith([
+      {
+        id: 'email1',
+        subject: 'Test',
+        body: 'Body',
+        sender: 'sender@test.com',
+        recipient: 'recipient@test.com',
+        cc: '',
+        sentAt: expect.any(Date),
+        historyId: '123',
+        threadId: 'thread1',
+        labelIds: ['label1'],
+      },
+    ]);
+    expect(spySetFullSyncCompleted).toHaveBeenCalled();
   });
 });
