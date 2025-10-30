@@ -24,8 +24,12 @@ describe('processSynchronizer', () => {
     } as unknown as Kysely<Db>;
 
     // Mock synchronizers
-    mockFullSynchronizer = vi.fn().mockReturnValue({ stop: vi.fn() }) as unknown as FullSynchronizeFunction;
-    mockPartialSynchronizer = vi.fn().mockReturnValue({ stop: vi.fn() }) as unknown as PartialSynchronizeFunction;
+    mockFullSynchronizer = vi
+      .fn()
+      .mockReturnValue({ stop: vi.fn() }) as unknown as FullSynchronizeFunction;
+    mockPartialSynchronizer = vi
+      .fn()
+      .mockReturnValue({ stop: vi.fn() }) as unknown as PartialSynchronizeFunction;
   });
 
   it('should pass a string (not a Promise) to partialSynchronizer when full sync is completed', async () => {
@@ -144,4 +148,3 @@ describe('processSynchronizer', () => {
     expect(firstArg).toBe('0');
   });
 });
-
