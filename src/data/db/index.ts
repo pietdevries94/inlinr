@@ -4,6 +4,7 @@ import { PGliteDialect } from 'kysely-pglite-dialect';
 import { migrationProvider } from './migrations';
 import PGWorker from './worker?worker';
 import { PGliteWorker } from '@electric-sql/pglite/worker';
+import type { PGlite } from '@electric-sql/pglite';
 
 export type Db = {
   emails: {
@@ -44,13 +45,19 @@ export async function initDB() {
     },
   );
 
+  const db = await createKyselyDb(rawDb);
+
+  return { rawDb, db };
+}
+
+export async function createKyselyDb(rawDb: PGliteWorker | PGlite) {
   const db = new Kysely<Db>({
     dialect: new PGliteDialect(rawDb),
   });
 
   await migrate(db);
 
-  return { rawDb, db };
+  return db;
 }
 
 async function migrate(db: Kysely<Db>) {
