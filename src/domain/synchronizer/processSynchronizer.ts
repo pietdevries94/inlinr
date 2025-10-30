@@ -33,7 +33,7 @@ async function process(
   partialSynchronizer: PartialSynchronizeFunction,
   options: SynchronizeOptions,
 ) {
-  if (await fullSyncCompleted(db)) return partialSynchronizer(partialSyncMarker(db), options);
+  if (await fullSyncCompleted(db)) return partialSynchronizer(await partialSyncMarker(db), options);
   return fullSynchronizer(options);
 }
 
