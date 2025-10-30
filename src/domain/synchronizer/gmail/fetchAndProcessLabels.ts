@@ -16,7 +16,7 @@ export async function fetchAndProcessLabels(gmailClient: GmailClient, options: S
       ({
         id: label.id || '',
         name: label.name || '',
-        type: (label.type as 'user' | 'system') || 'user',
+        type: label.type === 'system' || label.type === 'user' ? label.type : 'user',
       }) satisfies Label,
   );
 
