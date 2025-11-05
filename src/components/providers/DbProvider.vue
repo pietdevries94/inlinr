@@ -7,5 +7,5 @@ provideKyselyDb(rawDb, db);
 </script>
 
 <template>
-  <slot />
+	<slot />
 </template>

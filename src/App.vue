@@ -4,13 +4,13 @@ import GmailProvider from './components/providers/GmailProvider.vue';
 </script>
 
 <template>
-  <main class="dark:bg-black dark:text-white min-h-dvh">
-    <GmailProvider>
-      <Suspense>
-        <DbProvider>
-          <RouterView />
-        </DbProvider>
-      </Suspense>
-    </GmailProvider>
-  </main>
+	<main class="dark:bg-black dark:text-white min-h-dvh">
+		<GmailProvider>
+			<Suspense>
+				<DbProvider>
+					<RouterView />
+				</DbProvider>
+			</Suspense>
+		</GmailProvider>
+	</main>
 </template>

@@ -7,6 +7,6 @@ const pg = injectPGlite();
 </script>
 
 <template>
-  <GmailSynchronizer />
-  <pglite-repl :pg="pg" />
+	<GmailSynchronizer />
+	<pglite-repl :pg="pg" />
 </template>

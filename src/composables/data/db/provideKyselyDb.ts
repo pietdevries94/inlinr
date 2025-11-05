@@ -6,6 +6,6 @@ import type { Kysely } from 'kysely';
 import type { Db } from '@/data/db';
 
 export function provideKyselyDb(rawDb: PGliteWithLive, db: Kysely<Db>) {
-  providePGlite(rawDb);
-  provide(KyselyDBKey, db);
+	providePGlite(rawDb);
+	provide(KyselyDBKey, db);
 }

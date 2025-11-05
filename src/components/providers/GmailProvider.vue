@@ -7,5 +7,5 @@ provideGmail(gmail);
 </script>
 
 <template>
-  <slot />
+	<slot />
 </template>
