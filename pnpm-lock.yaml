@@ -78,6 +78,9 @@ importers:
       eslint:
         specifier: ^9.38.0
         version: 9.38.0(jiti@2.6.1)
+      eslint-plugin-exception-handling:
+        specifier: ^1.5.6
+        version: 1.5.6(jiti@2.6.1)
       eslint-plugin-only-warn:
         specifier: ^1.1.0
         version: 1.1.0
@@ -612,8 +615,8 @@ packages:
   '@maxim_mazurok/gapi.client.discovery-v1@0.4.20200806':
     resolution: {integrity: sha512-Jeo/KZqK39DI6ExXHcJ4lqnn1O/wEqboQ6eQ8WnNpu5eJ7wUnX/C5KazOgs1aRhnIB/dVzDe8wm62nmtkMIoaw==}
 
-  '@maxim_mazurok/gapi.client.gmail-v1@0.1.20251020':
-    resolution: {integrity: sha512-CdUJtuiRW33zJl3X9m/nT/d6QLNwsFQ1aSYT+6zdgVzslNpzfufu+ZPU/QUOJXu/1hesJ+Hk91CjPP3T5GK02g==}
+  '@maxim_mazurok/gapi.client.gmail-v1@0.1.20251103':
+    resolution: {integrity: sha512-tgeVh7yNMmEvm7Xy6yAMlKAhGuoQQirlzeIJqgt5IQHz9PwxI9ws++zBMte5pY5Y1bnbKhhv6dmO5hrjhQY0yQ==}
 
   '@napi-rs/wasm-runtime@1.0.7':
     resolution: {integrity: sha512-SeDnOO0Tk7Okiq6DbXmmBODgOAb9dp9gjlphokTUxmt8U3liIP1ZsozBahH69j/RJv+Rfs6IwUKHTgQYJ/HBAw==}
@@ -1483,6 +1486,9 @@ packages:
     hasBin: true
     peerDependencies:
       eslint: '>=7.0.0'
+
+  eslint-plugin-exception-handling@1.5.6:
+    resolution: {integrity: sha512-I32fCFqI6oGV6jXRnsxIl2/3bgNL8EBVvt2Qp/x/lenbovulW8qE56W7pniOb9zer+tli8NlffBca/eAq0HHiw==}
 
   eslint-plugin-only-warn@1.1.0:
     resolution: {integrity: sha512-2tktqUAT+Q3hCAU0iSf4xAN1k9zOpjK5WO8104mB0rT/dGhOa09582HN5HlbxNbPRZ0THV7nLGvzugcNOSjzfA==}
@@ -3134,7 +3140,7 @@ snapshots:
       '@types/gapi.client': 1.0.8
       '@types/gapi.client.discovery-v1': 0.0.4
 
-  '@maxim_mazurok/gapi.client.gmail-v1@0.1.20251020':
+  '@maxim_mazurok/gapi.client.gmail-v1@0.1.20251103':
     dependencies:
       '@types/gapi.client': 1.0.8
       '@types/gapi.client.discovery-v1': 0.0.4
@@ -3375,7 +3381,7 @@ snapshots:
 
   '@types/gapi.client.gmail-v1@0.0.4':
     dependencies:
-      '@maxim_mazurok/gapi.client.gmail-v1': 0.1.20251020
+      '@maxim_mazurok/gapi.client.gmail-v1': 0.1.20251103
 
   '@types/gapi.client@1.0.8': {}
 
@@ -4004,6 +4010,13 @@ snapshots:
   eslint-config-prettier@10.1.8(eslint@9.38.0(jiti@2.6.1)):
     dependencies:
       eslint: 9.38.0(jiti@2.6.1)
+
+  eslint-plugin-exception-handling@1.5.6(jiti@2.6.1):
+    dependencies:
+      eslint: 9.38.0(jiti@2.6.1)
+    transitivePeerDependencies:
+      - jiti
+      - supports-color
 
   eslint-plugin-only-warn@1.1.0: {}
 
