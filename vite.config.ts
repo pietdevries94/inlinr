@@ -7,27 +7,27 @@ import tailwindcss from '@tailwindcss/vite';
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: process.env.NODE_ENV === 'production' ? '/inlinr/' : '/',
-  plugins: [
-    vue({
-      template: {
-        compilerOptions: {
-          isCustomElement: (tag) => tag.startsWith('pglite-'),
-        },
-      },
-    }),
-    vueDevTools(),
-    tailwindcss(),
-  ],
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
-    },
-  },
-  optimizeDeps: {
-    exclude: ['@electric-sql/pglite'],
-  },
-  worker: {
-    format: 'es',
-  },
+	base: process.env.NODE_ENV === 'production' ? '/inlinr/' : '/',
+	plugins: [
+		vue({
+			template: {
+				compilerOptions: {
+					isCustomElement: (tag) => tag.startsWith('pglite-'),
+				},
+			},
+		}),
+		vueDevTools(),
+		tailwindcss(),
+	],
+	resolve: {
+		alias: {
+			'@': fileURLToPath(new URL('./src', import.meta.url)),
+		},
+	},
+	optimizeDeps: {
+		exclude: ['@electric-sql/pglite'],
+	},
+	worker: {
+		format: 'es',
+	},
 });
