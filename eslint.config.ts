@@ -3,6 +3,7 @@ import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescri
 import pluginVue from 'eslint-plugin-vue';
 import pluginVitest from '@vitest/eslint-plugin';
 import skipFormatting from '@vue/eslint-config-prettier/skip-formatting';
+import { plugin as pluginExceptionHandling } from 'eslint-plugin-exception-handling';
 import 'eslint-plugin-only-warn';
 
 // To allow more languages other than `ts` in `.vue` files, uncomment the following lines:
@@ -24,6 +25,22 @@ export default defineConfigWithVueTs(
   {
     ...pluginVitest.configs.recommended,
     files: ['src/**/__tests__/*', 'src/**/*.{spec,test}.*'],
+  },
+  {
+    files: ['**/*.{ts,mts,tsx}'],
+    plugins: { ex: pluginExceptionHandling },
+    rules: {
+      'ex/no-unhandled': 'error',
+      'ex/might-throw': 'error',
+      'ex/use-error-cause': 'error',
+    },
+  },
+  {
+    files: ['**/*.vue'],
+    plugins: { ex: pluginExceptionHandling },
+    rules: {
+      'ex/use-error-cause': 'error',
+    },
   },
   skipFormatting,
 );
